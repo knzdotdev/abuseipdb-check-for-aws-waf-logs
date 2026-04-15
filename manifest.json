@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "AbuseIPDB Check for AWS WAF Logs",
+  "version": "0.1.0",
+  "description": "Detects IPv4 addresses in the AWS Console and checks them against AbuseIPDB on click. Designed for AWS WAF Sampled Logs.",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://api.abuseipdb.com/*",
+    "https://*.console.aws.amazon.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "AbuseIPDB Check for AWS WAF Logs",
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.console.aws.amazon.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "styles.css"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

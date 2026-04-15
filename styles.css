@@ -1,0 +1,299 @@
+.abuseipdb-ip-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.abuseipdb-ip-info {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0 2px;
+  font: inherit;
+  line-height: 1;
+  color: #2563eb;
+}
+
+.abuseipdb-ip-info:hover {
+  color: #1d4ed8;
+}
+
+/* --- Tooltip (light / default) --- */
+.abuseipdb-tooltip-root {
+  position: fixed;
+  z-index: 2147483647;
+  max-width: 380px;
+  background: #ffffff;
+  border: 1px solid #94a3b8;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #0f172a;
+}
+
+.abuseipdb-tooltip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #cbd5e1;
+  cursor: move;
+  user-select: none;
+  touch-action: none;
+}
+
+.abuseipdb-tooltip-title {
+  font-weight: 600;
+  word-break: break-all;
+  color: #020617;
+}
+
+.abuseipdb-tooltip-body {
+  padding: 12px;
+  min-height: 200px;
+  max-height: min(70vh, 480px);
+  overflow: auto;
+}
+
+.abuseipdb-tooltip-body strong {
+  color: #020617;
+}
+
+.abuseipdb-loading {
+  color: #475569;
+}
+
+.abuseipdb-tooltip-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid #cbd5e1;
+}
+
+/* Primary action: strong label contrast on light background */
+.abuseipdb-tooltip-actions button {
+  border: 1px solid #475569;
+  background: #ffffff;
+  color: #0f172a;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.abuseipdb-tooltip-actions button:hover {
+  background: #f1f5f9;
+  border-color: #334155;
+  color: #020617;
+}
+
+.abuseipdb-tooltip-actions button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Close: visible "X" on white */
+.abuseipdb-close {
+  flex-shrink: 0;
+  box-sizing: border-box;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #64748b;
+  background: #f8fafc;
+  color: #0f172a;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.abuseipdb-close:hover {
+  background: #e2e8f0;
+  border-color: #475569;
+  color: #020617;
+}
+
+.abuseipdb-close:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.abuseipdb-result {
+  display: grid;
+  gap: 0;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.abuseipdb-result.abuseipdb-result-visible {
+  opacity: 1;
+}
+
+.abuseipdb-score {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.abuseipdb-score-number {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.abuseipdb-score-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  opacity: 0.85;
+}
+
+.abuseipdb-score-low {
+  background: #ecfdf5;
+  color: #166534;
+}
+
+.abuseipdb-score-medium {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.abuseipdb-score-high {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.abuseipdb-section {
+  display: grid;
+  gap: 4px;
+  padding: 8px 0;
+  border-top: 1px solid #e2e8f0;
+}
+
+.abuseipdb-section:first-of-type {
+  border-top: none;
+}
+
+.abuseipdb-section-meta {
+  opacity: 0.75;
+  font-size: 11px;
+}
+
+.abuseipdb-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.abuseipdb-label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.abuseipdb-value {
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.abuseipdb-error {
+  color: #b91c1c;
+  white-space: pre-wrap;
+}
+
+/* --- Tooltip (dark) --- */
+.abuseipdb-tooltip-root.abuseipdb-theme-dark {
+  background: #1e1e1e;
+  border-color: #3d3d3d;
+  color: #e2e8f0;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+}
+
+.abuseipdb-theme-dark .abuseipdb-tooltip-header {
+  border-bottom-color: #333333;
+}
+
+.abuseipdb-theme-dark .abuseipdb-tooltip-title {
+  color: #f8fafc;
+}
+
+.abuseipdb-theme-dark .abuseipdb-tooltip-body strong {
+  color: #f1f5f9;
+}
+
+.abuseipdb-theme-dark .abuseipdb-section {
+  border-top-color: #333333;
+}
+
+.abuseipdb-theme-dark .abuseipdb-label {
+  color: #a0a0a0;
+}
+
+.abuseipdb-theme-dark .abuseipdb-value {
+  color: #e2e8f0;
+}
+
+.abuseipdb-theme-dark .abuseipdb-loading {
+  color: #a0a0a0;
+}
+
+.abuseipdb-theme-dark .abuseipdb-tooltip-actions {
+  border-top-color: #333333;
+}
+
+.abuseipdb-theme-dark .abuseipdb-tooltip-actions button {
+  border-color: #4a4a4a;
+  background: #2a2a2a;
+  color: #f8fafc;
+}
+
+.abuseipdb-theme-dark .abuseipdb-tooltip-actions button:hover {
+  background: #333333;
+  border-color: #666666;
+  color: #ffffff;
+}
+
+.abuseipdb-theme-dark .abuseipdb-close {
+  border-color: #4a4a4a;
+  background: #2a2a2a;
+  color: #f1f5f9;
+}
+
+.abuseipdb-theme-dark .abuseipdb-close:hover {
+  background: #333333;
+  border-color: #666666;
+  color: #ffffff;
+}
+
+.abuseipdb-theme-dark .abuseipdb-score-low {
+  background: #064e3b;
+  color: #a7f3d0;
+}
+
+.abuseipdb-theme-dark .abuseipdb-score-medium {
+  background: #7c2d12;
+  color: #fed7aa;
+}
+
+.abuseipdb-theme-dark .abuseipdb-score-high {
+  background: #7f1d1d;
+  color: #fecaca;
+}
+
+.abuseipdb-theme-dark .abuseipdb-error {
+  color: #fca5a5;
+}

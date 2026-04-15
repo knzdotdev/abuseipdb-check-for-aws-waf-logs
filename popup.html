@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AbuseIPDB Check for AWS WAF Logs</title>
+    <style>
+      /* Inlined so the popup never depends on a separate CSS load (MV3 popup quirks). */
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+        margin: 0;
+        color: #0f172a;
+        background: #ffffff;
+      }
+
+      body.abuseipdb-ui-dark {
+        color: #e2e8f0;
+        background: #1e1e1e;
+        color-scheme: dark;
+      }
+
+      h1 {
+        font-size: 16px;
+        margin: 0 0 12px;
+        font-weight: 600;
+      }
+
+      body.abuseipdb-ui-dark h1 {
+        color: #f8fafc;
+      }
+
+      .muted {
+        color: #475569;
+        font-size: 12px;
+      }
+
+      body.abuseipdb-ui-dark .muted {
+        color: #94a3b8;
+      }
+
+      .popup-wrap {
+        box-sizing: border-box;
+        min-width: 280px;
+        max-width: 400px;
+        padding: 16px;
+      }
+
+      .grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .card {
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 12px;
+        background: #f8fafc;
+      }
+
+      body.abuseipdb-ui-dark .card {
+        border-color: #333333;
+        background: #2a2a2a;
+      }
+
+      .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .row strong {
+        color: #020617;
+        font-weight: 600;
+      }
+
+      body.abuseipdb-ui-dark .row strong {
+        color: #f8fafc;
+      }
+
+      .actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      .popup-wrap button {
+        font: inherit;
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid #64748b;
+        background: #ffffff;
+        color: #0f172a;
+        font-weight: 500;
+        cursor: pointer;
+      }
+
+      .popup-wrap button:hover {
+        background: #f1f5f9;
+        border-color: #475569;
+      }
+
+      body.abuseipdb-ui-dark .popup-wrap button {
+        border-color: #4a4a4a;
+        background: #2a2a2a;
+        color: #e2e8f0;
+      }
+
+      body.abuseipdb-ui-dark .popup-wrap button:hover {
+        background: #333333;
+        border-color: #666666;
+        color: #f8fafc;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="popup-wrap">
+      <div class="grid">
+        <div>
+          <h1>AbuseIPDB Check for AWS WAF Logs</h1>
+          <div class="muted">Local cache overview and quick access to settings.</div>
+        </div>
+
+        <div class="card" id="summary">
+          Loading...
+        </div>
+
+        <div class="actions">
+          <button id="openOptions" type="button">Options</button>
+          <button id="clearCache" type="button">Clear cache</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
