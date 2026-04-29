@@ -88,10 +88,10 @@ that bypasses the cache.
 
   ```bash
   # macOS / Linux
-  shasum -a 256 abuseipdb-ip-checker-v<version>.zip
+  shasum -a 256 ip-check-for-waf-logs-v<version>.zip
 
   # Windows (PowerShell)
-  Get-FileHash abuseipdb-ip-checker-v<version>.zip -Algorithm SHA256
+  Get-FileHash ip-check-for-waf-logs-v<version>.zip -Algorithm SHA256
   ```
 
   Compare the output against the hash published inline in the matching
