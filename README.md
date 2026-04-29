@@ -19,7 +19,8 @@ address and surfaces the reputation score in a compact tooltip.
 
 - Runs **only** on `https://*.console.aws.amazon.com/*`.
 - Makes network requests **only** to `https://api.abuseipdb.com/*`.
-- IPv4 detection only in v0.1.0. IPv6 support is on the roadmap.
+- IPv4 detection only. IPv6 support is deferred until it can be tested
+  reliably with WAF log samples.
 - No telemetry, no analytics, no remote configuration. All data stays
   in your browser profile (`chrome.storage.local`); see
   [Security notes](#security-notes) below.
@@ -55,14 +56,19 @@ call to AbuseIPDB.
 
 | Setting        | Default | Description                                                        |
 | -------------- | ------- | ------------------------------------------------------------------ |
-| API key        | —       | Your AbuseIPDB API key (required). Get one at https://www.abuseipdb.com/account/api. |
+| API key        | —       | Your AbuseIPDB API key (required). Use **Test API key** to validate it from the options page. |
 | `maxAgeInDays` | 30      | Report age limit forwarded to the AbuseIPDB `check` endpoint.       |
 | Cache TTL      | 24 h    | How long results are cached locally before a re-lookup is issued.   |
 | Use cache      | on      | Skip repeat API calls for already-known IPs while the TTL is fresh. |
 | Dark mode      | on      | Dark theme for the tooltip, popup, and options page.                |
+| IP scanning    | on      | Popup toggle that enables or disables inline IP detection.          |
 
 Use the **Check again** button in the tooltip to force a fresh lookup
-that bypasses the cache.
+that bypasses the cache. Cached tooltip results show how old the cached
+entry is.
+
+The **Test API key** action sends one AbuseIPDB check request for a
+public sentinel IP and may count against your API quota.
 
 ## Troubleshooting
 
@@ -70,10 +76,11 @@ that bypasses the cache.
 | ------------------------------------------------------------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | Tooltip shows "No AbuseIPDB API key configured".                          | Options page has no key set.                         | Open the extension options and paste your key.                                                                  |
 | Tooltip shows `AbuseIPDB API error 401` or `403`.                         | Key is invalid, revoked, or hit rate limit.          | Verify the key in the AbuseIPDB dashboard; check daily quota.                                                   |
+| Options page says the API key was rejected.                               | Key is invalid or no longer authorized.              | Paste a current AbuseIPDB API key and use **Test API key** again.                                               |
 | Info icon does not appear next to IPs in a WAF log view.                  | Content script did not re-scan the dynamic content.  | Scroll the log view or reload the page; the MutationObserver will pick up the new nodes.                        |
 | Popup shows "Failed to load cache data. Try reloading the extension."     | MV3 service worker cold-start race.                  | Reopen the popup (it already retries 3×); if it persists, reload the extension from `chrome://extensions`.      |
 | Extension icon is disabled / no effect.                                   | Tab is not on an AWS Console origin.                 | The content script only runs on `https://*.console.aws.amazon.com/*` — navigate to a matching page.             |
-| IPv6 addresses are ignored.                                               | By design in v0.1.0.                                 | IPv6 support is on the roadmap.                                                                                 |
+| IPv6 addresses are ignored.                                               | IPv6 support is deferred until reliable testing is available. | Paste IPv6 addresses manually into AbuseIPDB when needed.                                             |
 
 ## Security notes
 
@@ -98,6 +105,14 @@ that bypasses the cache.
   GitHub Release notes.
 
 ## Changelog
+
+### 0.2.3
+
+- Shows cache age inline in the tooltip source row, for example
+  `cache (23s ago)`, when a lookup result is served from local cache.
+- Adds API key validation from the options page via a **Test API key**
+  button and automatic validation after saving.
+- Adds `Escape` as a keyboard shortcut to close the tooltip.
 
 ### 0.2.2
 

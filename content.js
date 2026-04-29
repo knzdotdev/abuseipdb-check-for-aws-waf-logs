@@ -281,6 +281,7 @@ function formatResult(result) {
   const score = Number(result.abuseConfidenceScore) || 0;
   const scoreClass = getScoreClass(score);
   const riskLabel = score >= 80 ? "HIGH RISK" : score >= 30 ? "MEDIUM RISK" : "LOW RISK";
+  const source = formatSource(result);
 
   const hostnames = (result.hostnames || []).length > 0 ? result.hostnames.join(", ") : null;
 
@@ -317,7 +318,7 @@ function formatResult(result) {
       <div class="abuseipdb-section abuseipdb-section-meta">
         ${row("Whitelisted", String(result.isWhitelisted))}
         ${row("Checked at", formatDate(result.checkedAt))}
-        ${row("Source", result.source)}
+        ${row("Source", source)}
       </div>
     </div>
   `;
@@ -481,6 +482,49 @@ function formatDate(value) {
   });
 }
 
+function formatSource(result) {
+  if (result.source !== "cache") {
+    return result.source;
+  }
+
+  const age = formatCacheAge(result.checkedAt);
+  return age ? `cache (${age})` : "cache";
+}
+
+function formatCacheAge(value) {
+  if (!value) {
+    return null;
+  }
+
+  const checkedAt = new Date(value).getTime();
+  if (Number.isNaN(checkedAt)) {
+    return null;
+  }
+
+  const ageSeconds = Math.max(0, Math.floor((Date.now() - checkedAt) / 1000));
+  if (ageSeconds < 5) {
+    return "just now";
+  }
+  if (ageSeconds < 60) {
+    return `${ageSeconds}s ago`;
+  }
+
+  const units = [
+    { label: "d", seconds: 24 * 60 * 60 },
+    { label: "h", seconds: 60 * 60 },
+    { label: "m", seconds: 60 }
+  ];
+
+  for (const unit of units) {
+    const valueForUnit = Math.floor(ageSeconds / unit.seconds);
+    if (valueForUnit >= 1) {
+      return `${valueForUnit}${unit.label} ago`;
+    }
+  }
+
+  return "just now";
+}
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -496,6 +540,12 @@ document.addEventListener("click", (event) => {
   }
 
   if (!activeTooltip.contains(event.target) && !event.target.closest(".abuseipdb-ip-wrapper")) {
+    closeTooltip();
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && activeTooltip) {
     closeTooltip();
   }
 });

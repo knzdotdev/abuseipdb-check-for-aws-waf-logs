@@ -18,6 +18,9 @@
           AbuseIPDB API key
           <input id="apiKey" type="text" autocomplete="off" spellcheck="false">
         </label>
+        <p class="muted field-help">
+          Testing the key sends one AbuseIPDB check request for a public sentinel IP and may count against your API quota.
+        </p>
 
         <label>
           maxAgeInDays
@@ -39,7 +42,10 @@
           Dark mode (tooltip, popup, and this page)
         </label>
 
-        <button type="submit">Save</button>
+        <div class="actions">
+          <button id="testApiKey" type="button">Test API key</button>
+          <button id="saveSettings" type="submit">Save</button>
+        </div>
         <div class="status" id="status"></div>
       </form>
     </div>

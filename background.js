@@ -10,6 +10,8 @@ const DEFAULT_SETTINGS = {
 
 const CACHE_PREFIX = "ipcache:";
 const META_KEY = "meta";
+const API_CHECK_URL = "https://api.abuseipdb.com/api/v2/check";
+const API_KEY_VALIDATION_IP = "8.8.8.8";
 
 chrome.runtime.onInstalled.addListener(async () => {
   const current = await chrome.storage.local.get(Object.keys(DEFAULT_SETTINGS));
@@ -38,6 +40,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message && message.type === "CHECK_IP") {
         const result = await checkIp(message.ip, Boolean(message.force));
         sendResponse({ ok: true, result: result });
+        return;
+      }
+
+      if (message && message.type === "VALIDATE_API_KEY") {
+        await validateApiKey(message.apiKey, message.maxAgeInDays);
+        sendResponse({ ok: true });
         return;
       }
 
@@ -177,7 +185,7 @@ async function checkIp(ip, force) {
     };
   }
 
-  const url = new URL("https://api.abuseipdb.com/api/v2/check");
+  const url = new URL(API_CHECK_URL);
   url.searchParams.set("ipAddress", ip);
   url.searchParams.set("maxAgeInDays", String(settings.maxAgeInDays));
   url.searchParams.set("verbose", "true");
@@ -232,4 +240,39 @@ function validateIpv4(ip) {
   if (!ipv4Regex.test(ip)) {
     throw new Error("Invalid IPv4 address: " + ip);
   }
+}
+
+async function validateApiKey(apiKey, maxAgeInDays) {
+  const key = typeof apiKey === "string" ? apiKey.trim() : "";
+  if (!key) {
+    throw new Error("Enter an AbuseIPDB API key before validating.");
+  }
+
+  const maxAge = Number(maxAgeInDays) || DEFAULT_SETTINGS.maxAgeInDays;
+  const url = new URL(API_CHECK_URL);
+  url.searchParams.set("ipAddress", API_KEY_VALIDATION_IP);
+  url.searchParams.set("maxAgeInDays", String(maxAge));
+  url.searchParams.set("verbose", "false");
+
+  const response = await fetch(url.toString(), {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      Key: key
+    }
+  });
+
+  if (response.ok) {
+    return;
+  }
+
+  if (response.status === 401 || response.status === 403) {
+    throw new Error("AbuseIPDB API key was rejected.");
+  }
+
+  if (response.status === 429) {
+    throw new Error("AbuseIPDB rate limit reached while validating the API key.");
+  }
+
+  throw new Error("AbuseIPDB validation request failed with status " + response.status + ".");
 }

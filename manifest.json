@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "IP Check for WAF Logs",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Detects IPv4 addresses in the AWS Console and checks them against AbuseIPDB on click. Designed for AWS WAF Sampled Logs.",
   "permissions": [
     "storage"

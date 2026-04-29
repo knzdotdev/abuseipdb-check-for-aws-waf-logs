@@ -120,6 +120,10 @@ body.abuseipdb-ui-dark .popup-wrap button:hover {
   font-weight: 600;
 }
 
+.options-wrap .field-help {
+  margin: -12px 0 0;
+}
+
 .options-wrap input[type="text"],
 .options-wrap input[type="number"] {
   padding: 10px 12px;
@@ -144,7 +148,13 @@ body.abuseipdb-ui-dark .options-wrap input[type="number"] {
   font-weight: 400;
 }
 
-.options-wrap button[type="submit"] {
+.options-wrap .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.options-wrap button {
   width: fit-content;
   padding: 10px 14px;
   border: 1px solid #64748b;
@@ -155,17 +165,22 @@ body.abuseipdb-ui-dark .options-wrap input[type="number"] {
   cursor: pointer;
 }
 
-.options-wrap button[type="submit"]:hover {
+.options-wrap button:hover {
   background: #f1f5f9;
 }
 
-body.abuseipdb-ui-dark .options-wrap button[type="submit"] {
+.options-wrap button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+body.abuseipdb-ui-dark .options-wrap button {
   border-color: #4a4a4a;
   background: #2a2a2a;
   color: #e2e8f0;
 }
 
-body.abuseipdb-ui-dark .options-wrap button[type="submit"]:hover {
+body.abuseipdb-ui-dark .options-wrap button:hover {
   background: #333333;
   color: #f8fafc;
 }
