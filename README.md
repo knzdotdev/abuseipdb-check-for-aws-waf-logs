@@ -31,7 +31,7 @@ listing is approved, install it as an unpacked extension:
 
 ```bash
 git clone <repo-url>
-cd abuseipdb-check-for-aws-waf-logs
+cd ip-check-for-waf-logs
 ```
 
 1. Open `chrome://extensions` in Chrome.
