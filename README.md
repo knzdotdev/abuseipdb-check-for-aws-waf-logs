@@ -1,4 +1,4 @@
-# AbuseIPDB Check for AWS WAF Logs
+# IP Check for WAF Logs
 
 Chrome extension (Manifest V3) that detects **IPv4** addresses in the **AWS Console** and checks them against [AbuseIPDB](https://www.abuseipdb.com/) on demand.
 
