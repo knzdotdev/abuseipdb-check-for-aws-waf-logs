@@ -15,6 +15,12 @@ let activeTooltip = null;
 let tooltipViewportCleanup = null;
 let scanPending = false;
 
+// Mirrors the `scanningEnabled` storage flag. Treated as enabled until settings load
+// so we never block the initial scan on async storage access.
+let scanningEnabled = true;
+/** @type {MutationObserver | null} */
+let domObserver = null;
+
 const TOOLTIP_MARGIN = 8;
 const TOOLTIP_PANEL_MAX_WIDTH = 380;
 
@@ -50,6 +56,9 @@ function scheduleScan() {
   scanPending = true;
   const run = () => {
     scanPending = false;
+    if (!scanningEnabled) {
+      return;
+    }
     scanDocument();
   };
   if (typeof requestIdleCallback === "function") {
@@ -514,7 +523,13 @@ function isSelfInflictedMutation(mutation) {
 }
 
 function startObserver() {
-  const observer = new MutationObserver((mutations) => {
+  if (domObserver) {
+    return;
+  }
+  domObserver = new MutationObserver((mutations) => {
+    if (!scanningEnabled) {
+      return;
+    }
     for (let i = 0; i < mutations.length; i += 1) {
       if (!isSelfInflictedMutation(mutations[i])) {
         scheduleScan();
@@ -522,19 +537,81 @@ function startObserver() {
       }
     }
   });
-  observer.observe(document.documentElement, {
+  domObserver.observe(document.documentElement, {
     childList: true,
     subtree: true
   });
 }
 
-function bootstrap() {
-  scheduleScan();
+/**
+ * Restores every injected IP wrapper to its original plain text. Used when the user
+ * toggles scanning off so previously decorated pages no longer show the info icon.
+ */
+function unwrapAllIpWrappers() {
+  const wrappers = document.querySelectorAll(".abuseipdb-ip-wrapper");
+  for (const wrapper of wrappers) {
+    const label = wrapper.querySelector(".abuseipdb-ip-text");
+    const ipText = label ? label.textContent : wrapper.textContent;
+    const parent = wrapper.parentNode;
+    if (!parent) {
+      continue;
+    }
+    parent.replaceChild(document.createTextNode(ipText || ""), wrapper);
+    // Merge adjacent text nodes so a future re-scan can work on the combined text.
+    parent.normalize();
+  }
+  closeTooltip();
+}
+
+function applyScanningState(nextEnabled) {
+  const previous = scanningEnabled;
+  scanningEnabled = Boolean(nextEnabled);
+
+  if (previous && !scanningEnabled) {
+    unwrapAllIpWrappers();
+    return;
+  }
+  if (!previous && scanningEnabled) {
+    scheduleScan();
+  }
+}
+
+function subscribeToScanningSetting() {
+  if (!chrome?.storage?.onChanged) {
+    return;
+  }
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local" || !changes.scanningEnabled) {
+      return;
+    }
+    const next = changes.scanningEnabled.newValue;
+    applyScanningState(next !== false);
+  });
+}
+
+async function loadInitialScanningState() {
+  try {
+    const stored = await chrome.storage.local.get(["scanningEnabled"]);
+    // Missing flag is treated as enabled (matches DEFAULT_SETTINGS).
+    scanningEnabled = stored.scanningEnabled !== false;
+  } catch {
+    scanningEnabled = true;
+  }
+}
+
+async function bootstrap() {
+  await loadInitialScanningState();
+  subscribeToScanningSetting();
   startObserver();
+  if (scanningEnabled) {
+    scheduleScan();
+  }
 }
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", bootstrap);
+  document.addEventListener("DOMContentLoaded", () => {
+    void bootstrap();
+  });
 } else {
-  bootstrap();
+  void bootstrap();
 }

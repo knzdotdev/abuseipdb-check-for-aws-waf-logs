@@ -35,8 +35,10 @@ async function main() {
   const summaryEl = document.getElementById("summary");
   const openOptionsButton = document.getElementById("openOptions");
   const clearCacheButton = document.getElementById("clearCache");
+  const scanToggle = document.getElementById("scanToggle");
+  const scanToggleHint = document.getElementById("scanToggleHint");
 
-  if (!summaryEl || !openOptionsButton || !clearCacheButton) {
+  if (!summaryEl || !openOptionsButton || !clearCacheButton || !scanToggle || !scanToggleHint) {
     return;
   }
 
@@ -53,7 +55,42 @@ async function main() {
     await renderSummary(summaryEl);
   });
 
+  await initScanToggle(scanToggle, scanToggleHint);
+
   await renderSummary(summaryEl);
+}
+
+async function initScanToggle(toggleInput, hintEl) {
+  // Default to enabled if settings are unavailable to avoid surprising the user.
+  let enabled = true;
+  try {
+    const stored = await chrome.storage.local.get(["scanningEnabled"]);
+    enabled = stored.scanningEnabled !== false;
+  } catch {
+    /* Keep default. */
+  }
+
+  applyToggleState(toggleInput, hintEl, enabled);
+
+  toggleInput.addEventListener("change", async () => {
+    const nextEnabled = toggleInput.checked;
+    try {
+      await chrome.storage.local.set({ scanningEnabled: nextEnabled });
+      applyToggleState(toggleInput, hintEl, nextEnabled);
+    } catch (error) {
+      // Revert UI if storage write fails.
+      toggleInput.checked = !nextEnabled;
+      applyToggleState(toggleInput, hintEl, !nextEnabled);
+      alert(error?.message || "Could not update the scanning setting.");
+    }
+  });
+}
+
+function applyToggleState(toggleInput, hintEl, enabled) {
+  toggleInput.checked = enabled;
+  hintEl.textContent = enabled
+    ? "Scanning is on. IP icons will appear on AWS Console pages."
+    : "Scanning is off. No icons will be injected. Reload AWS tabs if icons linger.";
 }
 
 async function renderSummary(target) {

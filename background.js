@@ -4,7 +4,8 @@ const DEFAULT_SETTINGS = {
   useCache: true,
   autoBadge: false,
   cacheTtlHours: 24,
-  darkMode: true
+  darkMode: true,
+  scanningEnabled: true
 };
 
 const CACHE_PREFIX = "ipcache:";

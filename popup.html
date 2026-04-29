@@ -82,6 +82,97 @@
         gap: 8px;
       }
 
+      /* Toggle row: label on the left, switch on the right. */
+      .toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .toggle-row .toggle-label {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .toggle-row .toggle-label strong {
+        font-size: 13px;
+        font-weight: 600;
+        color: #020617;
+      }
+
+      body.abuseipdb-ui-dark .toggle-row .toggle-label strong {
+        color: #f8fafc;
+      }
+
+      .toggle-row .toggle-label .toggle-hint {
+        font-size: 11px;
+        color: #475569;
+      }
+
+      body.abuseipdb-ui-dark .toggle-row .toggle-label .toggle-hint {
+        color: #94a3b8;
+      }
+
+      /* iOS-style switch built from a checkbox + span. */
+      .switch {
+        position: relative;
+        flex: 0 0 auto;
+        display: inline-block;
+        width: 40px;
+        height: 22px;
+      }
+
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .switch .slider {
+        position: absolute;
+        inset: 0;
+        background: #cbd5e1;
+        border-radius: 999px;
+        transition: background-color 0.15s ease;
+        cursor: pointer;
+      }
+
+      .switch .slider::before {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #ffffff;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.25);
+        transition: transform 0.15s ease;
+      }
+
+      .switch input:checked + .slider {
+        background: #16a34a;
+      }
+
+      .switch input:checked + .slider::before {
+        transform: translateX(18px);
+      }
+
+      .switch input:focus-visible + .slider {
+        outline: 2px solid #2563eb;
+        outline-offset: 2px;
+      }
+
+      body.abuseipdb-ui-dark .switch .slider {
+        background: #4a4a4a;
+      }
+
+      body.abuseipdb-ui-dark .switch input:checked + .slider {
+        background: #22c55e;
+      }
+
       .popup-wrap button {
         font: inherit;
         padding: 8px 12px;
@@ -117,6 +208,17 @@
         <div>
           <h1>AbuseIPDB Check for AWS WAF Logs</h1>
           <div class="muted">Local cache overview and quick access to settings.</div>
+        </div>
+
+        <div class="card toggle-row">
+          <div class="toggle-label">
+            <strong>IP scanning</strong>
+            <span class="toggle-hint" id="scanToggleHint">When off, no icons are injected next to IPs.</span>
+          </div>
+          <label class="switch" for="scanToggle" title="Enable or disable IP scanning on AWS Console pages">
+            <input type="checkbox" id="scanToggle">
+            <span class="slider" aria-hidden="true"></span>
+          </label>
         </div>
 
         <div class="card" id="summary">
