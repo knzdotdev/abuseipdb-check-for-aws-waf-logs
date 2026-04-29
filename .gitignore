@@ -21,5 +21,8 @@ memory/
 # Internal docs
 docs/
 
-# Release ZIPs (uploaded via GitHub Releases, not committed)
+# Release artifacts (published via GitHub Releases, not committed)
 *.zip
+checksums.txt
+release/*
+!release/.gitkeep
