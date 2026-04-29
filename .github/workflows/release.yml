@@ -1,0 +1,175 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PACKAGE_PREFIX: ip-check-for-waf-logs
+
+jobs:
+  build:
+    name: Build extension ZIP
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      zip_name: ${{ steps.package.outputs.zip_name }}
+      checksum: ${{ steps.checksum.outputs.checksum }}
+      artifact_name: ${{ steps.package.outputs.artifact_name }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+
+      - name: Derive and validate version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          manifest_version="$(python3 - <<'PY'
+          import json
+
+          with open("manifest.json", encoding="utf-8") as manifest:
+              print(json.load(manifest)["version"])
+          PY
+          )"
+
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            if [[ ! "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::Release tags must use the vX.Y.Z format."
+              exit 1
+            fi
+
+            tag_version="${GITHUB_REF_NAME#v}"
+            if [[ "${manifest_version}" != "${tag_version}" ]]; then
+              echo "::error::manifest.json version (${manifest_version}) does not match tag ${GITHUB_REF_NAME}."
+              exit 1
+            fi
+
+            default_branch="${{ github.event.repository.default_branch }}"
+            git fetch --no-tags origin "${default_branch}:refs/remotes/origin/${default_branch}"
+            if ! git merge-base --is-ancestor "$(git rev-parse HEAD)" "origin/${default_branch}"; then
+              echo "::error::Release tag ${GITHUB_REF_NAME} must point to a commit on ${default_branch}."
+              exit 1
+            fi
+
+            version="${tag_version}"
+          else
+            version="${manifest_version}"
+          fi
+
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Build deterministic extension ZIP
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          version="${{ steps.version.outputs.version }}"
+          zip_name="${PACKAGE_PREFIX}-v${version}.zip"
+          artifact_name="${PACKAGE_PREFIX}-v${version}"
+
+          mkdir -p release
+          git archive \
+            --format=zip \
+            --output="release/${zip_name}" \
+            HEAD \
+            manifest.json \
+            background.js \
+            content.js \
+            styles.css \
+            popup.html \
+            popup.js \
+            options.html \
+            options.js \
+            extension-ui.css \
+            icons
+
+          echo "zip_name=${zip_name}" >> "${GITHUB_OUTPUT}"
+          echo "artifact_name=${artifact_name}" >> "${GITHUB_OUTPUT}"
+
+      - name: Create SHA-256 checksum
+        id: checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cd release
+          shasum -a 256 "${{ steps.package.outputs.zip_name }}" > checksums.txt
+          checksum="$(awk '{print $1}' checksums.txt)"
+          echo "checksum=${checksum}" >> "${GITHUB_OUTPUT}"
+          cat checksums.txt
+
+      - name: Upload release candidate artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ${{ steps.package.outputs.artifact_name }}
+          path: |
+            release/${{ steps.package.outputs.zip_name }}
+            release/checksums.txt
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download release artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ needs.build.outputs.artifact_name }}
+          path: release
+
+      - name: Create release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cat > release/integrity.md <<EOF
+          ## Verify integrity
+
+          \`\`\`bash
+          shasum -a 256 ${{ needs.build.outputs.zip_name }}
+          # Expected: ${{ needs.build.outputs.checksum }}
+          \`\`\`
+
+          The same SHA-256 value is also published in \`checksums.txt\`.
+          EOF
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          gh release create "${GITHUB_REF_NAME}" \
+            "release/${{ needs.build.outputs.zip_name }}" \
+            "release/checksums.txt" \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes
+
+          gh release view "${GITHUB_REF_NAME}" --json body --jq '.body' > release/generated-notes.md
+          {
+            cat release/generated-notes.md
+            printf '\n\n'
+            cat release/integrity.md
+          } > release/release-notes.md
+
+          gh release edit "${GITHUB_REF_NAME}" --notes-file release/release-notes.md
