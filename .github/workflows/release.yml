@@ -27,7 +27,7 @@ jobs:
       artifact_name: ${{ steps.package.outputs.artifact_name }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           fetch-depth: 0
 
@@ -82,20 +82,37 @@ jobs:
           artifact_name="${PACKAGE_PREFIX}-v${version}"
 
           mkdir -p release
-          git archive \
-            --format=zip \
-            --output="release/${zip_name}" \
-            HEAD \
-            manifest.json \
-            background.js \
-            content.js \
-            styles.css \
-            popup.html \
-            popup.js \
-            options.html \
-            options.js \
-            extension-ui.css \
-            icons
+          ZIP_NAME="${zip_name}" python3 - <<'PY'
+          import os
+          import zipfile
+          from pathlib import Path
+
+          zip_path = Path("release") / os.environ["ZIP_NAME"]
+          runtime_paths = [
+              Path("manifest.json"),
+              Path("background.js"),
+              Path("content.js"),
+              Path("styles.css"),
+              Path("popup.html"),
+              Path("popup.js"),
+              Path("options.html"),
+              Path("options.js"),
+              Path("extension-ui.css"),
+              Path("icons/icon16.png"),
+              Path("icons/icon48.png"),
+              Path("icons/icon128.png"),
+          ]
+
+          with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+              for path in runtime_paths:
+                  if not path.is_file():
+                      raise FileNotFoundError(path)
+
+                  info = zipfile.ZipInfo(str(path), date_time=(1980, 1, 1, 0, 0, 0))
+                  info.compress_type = zipfile.ZIP_DEFLATED
+                  info.external_attr = 0o644 << 16
+                  archive.writestr(info, path.read_bytes())
+          PY
 
           echo "zip_name=${zip_name}" >> "${GITHUB_OUTPUT}"
           echo "artifact_name=${artifact_name}" >> "${GITHUB_OUTPUT}"
@@ -113,7 +130,7 @@ jobs:
           cat checksums.txt
 
       - name: Upload release candidate artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: ${{ steps.package.outputs.artifact_name }}
           path: |
@@ -131,7 +148,7 @@ jobs:
       contents: write
     steps:
       - name: Download release artifact
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: ${{ needs.build.outputs.artifact_name }}
           path: release
