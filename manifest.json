@@ -1,13 +1,14 @@
 {
   "manifest_version": 3,
   "name": "IP Check for WAF Logs",
-  "version": "0.2.3",
-  "description": "Detects IPv4 addresses in AWS and GCP console logs and checks them against AbuseIPDB on click. Designed for WAF log triage.",
+  "version": "0.3.0",
+  "description": "Detects IPv4 and IPv6 addresses in AWS and GCP console logs and checks them against AbuseIPDB on click.",
   "permissions": [
     "storage"
   ],
   "host_permissions": [
     "https://api.abuseipdb.com/*",
+    "https://console.aws.amazon.com/*",
     "https://*.console.aws.amazon.com/*",
     "https://console.cloud.google.com/*"
   ],
@@ -22,6 +23,7 @@
   "content_scripts": [
     {
       "matches": [
+        "https://console.aws.amazon.com/*",
         "https://*.console.aws.amazon.com/*",
         "https://console.cloud.google.com/*"
       ],
@@ -32,7 +34,8 @@
         "styles.css"
       ],
       "run_at": "document_idle",
-      "all_frames": false
+      "all_frames": true,
+      "match_about_blank": true
     }
   ],
   "icons": {

@@ -162,7 +162,7 @@ async function clearCache() {
 }
 
 async function checkIp(ip, force) {
-  validateIpv4(ip);
+  validateIpAddress(ip);
 
   const settings = await getSettings();
 
@@ -237,8 +237,28 @@ function validateIpv4(ip) {
   const ipv4Regex =
     /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
 
-  if (!ipv4Regex.test(ip)) {
-    throw new Error("Invalid IPv4 address: " + ip);
+  return ipv4Regex.test(ip);
+}
+
+function validateIpv6(ip) {
+  if (typeof ip !== "string" || !ip.includes(":")) {
+    return false;
+  }
+  if (!/[0-9A-Fa-f]/.test(ip)) {
+    return false;
+  }
+
+  try {
+    const url = new URL("https://[" + ip + "]/");
+    return url.hostname.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+function validateIpAddress(ip) {
+  if (!validateIpv4(ip) && !validateIpv6(ip)) {
+    throw new Error("Invalid IP address: " + ip);
   }
 }
 

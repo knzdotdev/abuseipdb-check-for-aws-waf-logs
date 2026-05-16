@@ -1,7 +1,7 @@
 # IP Check for WAF Logs
 
-Chrome extension (Manifest V3) that detects **IPv4** addresses in the
-**AWS and GCP consoles** and checks them against
+Chrome extension (Manifest V3) that detects **IPv4 and IPv6**
+addresses in the **AWS and GCP consoles** and checks them against
 [AbuseIPDB](https://www.abuseipdb.com/) on demand.
 
 Designed for use with **WAF log triage** — click the info icon
@@ -12,16 +12,16 @@ report counts, country, ISP, and other context.
 
 Speed up IP triage during WAF investigations without leaving the
 cloud console. Instead of copying addresses into a separate AbuseIPDB tab, the
-extension renders an inline info control next to every detected IPv4
+extension renders an inline info control next to every detected IP
 address and surfaces the reputation score in a compact tooltip.
 
 ## Scope
 
-- Runs **only** on `https://*.console.aws.amazon.com/*` and
+- Runs **only** on `https://console.aws.amazon.com/*`,
+  `https://*.console.aws.amazon.com/*`, and
   `https://console.cloud.google.com/*`.
 - Makes network requests **only** to `https://api.abuseipdb.com/*`.
-- IPv4 detection only. IPv6 support is deferred until it can be tested
-  reliably with WAF log samples.
+- IPv4 and IPv6 detection in supported AWS and GCP console log views.
 - No telemetry, no analytics, no remote configuration. All data stays
   in your browser profile (`chrome.storage.local`); see
   [Security notes](#security-notes) below.
@@ -40,8 +40,8 @@ cd ip-check-for-waf-logs
 2. Enable **Developer mode** (top-right toggle).
 3. Click **Load unpacked** and select this repository's root folder.
 4. Open the extension's options page and paste your AbuseIPDB API key.
-5. Visit any supported AWS or GCP console page — detected IPv4
-   addresses will show a small info icon.
+5. Visit any supported AWS or GCP console page — detected IP addresses
+   will show a small info icon.
 
 There is no build step; the extension ships from source.
 
@@ -78,10 +78,10 @@ public sentinel IP and may count against your API quota.
 | Tooltip shows "No AbuseIPDB API key configured".                          | Options page has no key set.                         | Open the extension options and paste your key.                                                                  |
 | Tooltip shows `AbuseIPDB API error 401` or `403`.                         | Key is invalid, revoked, or hit rate limit.          | Verify the key in the AbuseIPDB dashboard; check daily quota.                                                   |
 | Options page says the API key was rejected.                               | Key is invalid or no longer authorized.              | Paste a current AbuseIPDB API key and use **Test API key** again.                                               |
-| Info icon does not appear next to IPs in a WAF log view.                  | Content script did not re-scan the dynamic content.  | Scroll the log view or reload the page; the MutationObserver will pick up new nodes and GCP text updates.       |
+| Info icon does not appear next to IPs in a WAF log view.                  | Content script did not re-scan the dynamic content or the extension was not reloaded after an update. | Scroll the log view or reload the page; for unpacked installs, reload the extension from `chrome://extensions`. |
 | Popup shows "Failed to load cache data. Try reloading the extension."     | MV3 service worker cold-start race.                  | Reopen the popup (it already retries 3×); if it persists, reload the extension from `chrome://extensions`.      |
-| Extension icon is disabled / no effect.                                   | Tab is not on a supported cloud console origin.      | Navigate to `https://*.console.aws.amazon.com/*` or `https://console.cloud.google.com/*`.                       |
-| IPv6 addresses are ignored.                                               | IPv6 support is deferred until reliable testing is available. | Paste IPv6 addresses manually into AbuseIPDB when needed.                                             |
+| Extension icon is disabled / no effect.                                   | Tab is not on a supported cloud console origin.      | Navigate to `https://console.aws.amazon.com/*`, `https://*.console.aws.amazon.com/*`, or `https://console.cloud.google.com/*`. |
+| An IP address is ignored.                                                 | The value is not rendered as plain text or is not a valid IPv4 / IPv6 address. | Expand the log entry, reload the page, or verify the address format.                                  |
 
 ## Security notes
 
@@ -106,6 +106,15 @@ public sentinel IP and may count against your API quota.
   GitHub Release notes.
 
 ## Changelog
+
+### 0.3.0
+
+- Adds IPv6 detection and lookup support for supported AWS and GCP log
+  views.
+- Adds Google Cloud Console Logs Explorer support.
+- Supports AWS CloudWatch Log Streams rendered inside AWS micro-console
+  iframes.
+- Fixes popup cache summary wrapping for long IPv6 addresses.
 
 ### 0.2.3
 

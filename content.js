@@ -1,4 +1,6 @@
 const IPV4_REGEX = /\b(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}\b/g;
+const IPV6_CANDIDATE_REGEX =
+  /(?<![0-9A-Fa-f:])(?:[0-9A-Fa-f]{0,4}:){2,}[0-9A-Fa-f]{0,4}(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){0,3}(?![0-9A-Fa-f:])/g;
 
 const SKIP_TAG_NAMES = new Set([
   "SCRIPT",
@@ -21,11 +23,24 @@ let scanningEnabled = true;
 /** @type {MutationObserver | null} */
 let domObserver = null;
 let textNodeRescanPending = false;
+let cloudWatchLogScanPending = false;
 
 const TOOLTIP_MARGIN = 8;
 const TOOLTIP_PANEL_MAX_WIDTH = 380;
+const AWS_CONSOLE_HOSTNAME = "console.aws.amazon.com";
+const AWS_CONSOLE_HOST_SUFFIX = ".console.aws.amazon.com";
 const GCP_CONSOLE_HOSTNAME = "console.cloud.google.com";
+const CLOUDWATCH_LOG_MESSAGE_SELECTOR = [
+  ".log-event-message-wrapper.text-mode",
+  ".log-events-table__formatted-message-text-mode",
+  ".logs__events__json",
+  ".logs__events__json-string"
+].join(",");
 const isGcpConsole = window.location.hostname === GCP_CONSOLE_HOSTNAME;
+const isAwsCloudWatchLogs =
+  (window.location.hostname === AWS_CONSOLE_HOSTNAME || window.location.hostname.endsWith(AWS_CONSOLE_HOST_SUFFIX)) &&
+  window.location.pathname.includes("/cloudwatch/");
+const shouldTrackTextNodeMutations = isGcpConsole || isAwsCloudWatchLogs;
 
 /**
  * Visible viewport bounds for fixed-position UI. Prefers Visual Viewport API when
@@ -49,7 +64,7 @@ function getViewportBounds() {
   };
 }
 
-// Text nodes confirmed to contain no IPv4 in a prior scan; skipped on subsequent passes.
+// Text nodes confirmed to contain no IP address in a prior scan; skipped on subsequent passes.
 const scannedTextNodes = new WeakSet();
 const pendingTextNodeRescans = new Set();
 
@@ -73,7 +88,7 @@ function scheduleScan() {
 }
 
 function scheduleTextNodeRescan(textNode) {
-  if (!isGcpConsole || textNode.nodeType !== Node.TEXT_NODE) {
+  if (!shouldTrackTextNodeMutations || textNode.nodeType !== Node.TEXT_NODE) {
     return;
   }
 
@@ -105,6 +120,108 @@ function scheduleTextNodeRescan(textNode) {
   }
 }
 
+function scheduleCloudWatchLogScan() {
+  if (!isAwsCloudWatchLogs || cloudWatchLogScanPending) {
+    return;
+  }
+
+  cloudWatchLogScanPending = true;
+  const run = () => {
+    cloudWatchLogScanPending = false;
+    if (!scanningEnabled) {
+      return;
+    }
+
+    scanCloudWatchLogMessages();
+    // CloudWatch can expand a row before all syntax-highlighted JSON spans
+    // receive their final text; keep the retry scoped to log message bodies.
+    setTimeout(() => {
+      if (scanningEnabled) {
+        scanCloudWatchLogMessages();
+      }
+    }, 500);
+  };
+
+  if (typeof requestIdleCallback === "function") {
+    requestIdleCallback(run, { timeout: 1000 });
+  } else {
+    setTimeout(run, 100);
+  }
+}
+
+function isValidIpv6(ip) {
+  if (typeof ip !== "string" || !ip.includes(":")) {
+    return false;
+  }
+  if (!/[0-9A-Fa-f]/.test(ip)) {
+    return false;
+  }
+
+  try {
+    // The URL parser gives us a browser-native IPv6 syntax check without
+    // maintaining a fragile RFC 4291 regular expression by hand.
+    const url = new URL("https://[" + ip + "]/");
+    return url.hostname.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+function findIpMatches(text) {
+  const matches = [];
+
+  for (const match of text.matchAll(IPV4_REGEX)) {
+    matches.push({
+      ip: match[0],
+      index: match.index ?? 0
+    });
+  }
+
+  for (const match of text.matchAll(IPV6_CANDIDATE_REGEX)) {
+    const ip = match[0];
+    if (isValidIpv6(ip)) {
+      matches.push({
+        ip,
+        index: match.index ?? 0
+      });
+    }
+  }
+
+  const sorted = matches.sort((a, b) => a.index - b.index || b.ip.length - a.ip.length);
+  const nonOverlapping = [];
+  let lastIndex = 0;
+
+  for (const match of sorted) {
+    if (match.index < lastIndex) {
+      continue;
+    }
+    nonOverlapping.push(match);
+    lastIndex = match.index + match.ip.length;
+  }
+
+  return nonOverlapping;
+}
+
+function createIpFragment(text, matches) {
+  let lastIndex = 0;
+  const fragment = document.createDocumentFragment();
+
+  for (const match of matches) {
+    const start = match.index;
+    if (start > lastIndex) {
+      fragment.appendChild(document.createTextNode(text.slice(lastIndex, start)));
+    }
+    fragment.appendChild(createIpWrapper(match.ip));
+    lastIndex = start + match.ip.length;
+  }
+
+  if (lastIndex < text.length) {
+    fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
+  }
+
+  return fragment;
+}
+
 function acceptTextNode(node) {
   const parent = node.parentElement;
   if (!parent) {
@@ -123,7 +240,15 @@ function acceptTextNode(node) {
 }
 
 function scanDocument() {
-  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+  scanTextNodes(document.body);
+}
+
+function scanTextNodes(root, options = {}) {
+  if (!root) {
+    return;
+  }
+
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode(node) {
       return acceptTextNode(node) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
     }
@@ -136,7 +261,21 @@ function scanDocument() {
   }
 
   for (let i = batch.length - 1; i >= 0; i -= 1) {
+    if (options.force) {
+      scannedTextNodes.delete(batch[i]);
+    }
     processTextNode(batch[i]);
+  }
+}
+
+function scanCloudWatchLogMessages() {
+  if (!isAwsCloudWatchLogs) {
+    return;
+  }
+
+  const roots = document.querySelectorAll(CLOUDWATCH_LOG_MESSAGE_SELECTOR);
+  for (const root of roots) {
+    scanTextNodes(root, { force: true });
   }
 }
 
@@ -150,29 +289,13 @@ function processTextNode(textNode) {
   }
 
   const text = textNode.textContent;
-  const matches = Array.from(text.matchAll(IPV4_REGEX));
+  const matches = findIpMatches(text);
   if (matches.length === 0) {
     scannedTextNodes.add(textNode);
     return;
   }
 
-  let lastIndex = 0;
-  const fragment = document.createDocumentFragment();
-
-  for (const match of matches) {
-    const start = match.index ?? 0;
-    if (start > lastIndex) {
-      fragment.appendChild(document.createTextNode(text.slice(lastIndex, start)));
-    }
-    fragment.appendChild(createIpWrapper(match[0]));
-    lastIndex = start + match[0].length;
-  }
-
-  if (lastIndex < text.length) {
-    fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
-  }
-
-  textNode.parentNode.replaceChild(fragment, textNode);
+  textNode.parentNode.replaceChild(createIpFragment(text, matches), textNode);
 }
 
 function createIpWrapper(ip) {
@@ -609,8 +732,8 @@ function isSelfInflictedMutation(mutation) {
   );
 }
 
-function isGcpTextMutation(mutation) {
-  return isGcpConsole && mutation.type === "characterData" && mutation.target.nodeType === Node.TEXT_NODE;
+function isTrackedTextMutation(mutation) {
+  return shouldTrackTextNodeMutations && mutation.type === "characterData" && mutation.target.nodeType === Node.TEXT_NODE;
 }
 
 function startObserver() {
@@ -627,9 +750,12 @@ function startObserver() {
       if (isSelfInflictedMutation(mutation)) {
         continue;
       }
-      if (isGcpTextMutation(mutation)) {
+      if (isTrackedTextMutation(mutation)) {
         scheduleTextNodeRescan(mutation.target);
         continue;
+      }
+      if (isAwsCloudWatchLogs) {
+        scheduleCloudWatchLogScan();
       }
       shouldScanDocument = true;
     }
@@ -642,7 +768,7 @@ function startObserver() {
     childList: true,
     subtree: true
   };
-  if (isGcpConsole) {
+  if (shouldTrackTextNodeMutations) {
     observerOptions.characterData = true;
   }
 
@@ -711,6 +837,7 @@ async function bootstrap() {
   startObserver();
   if (scanningEnabled) {
     scheduleScan();
+    scheduleCloudWatchLogScan();
   }
 }
 
