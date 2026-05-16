@@ -57,13 +57,21 @@ body.abuseipdb-ui-dark .card {
 
 .row {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
 }
 
+.row span {
+  flex: 0 0 auto;
+}
+
 .row strong {
+  min-width: 0;
   color: #020617;
   font-weight: 600;
+  overflow-wrap: anywhere;
+  text-align: right;
 }
 
 body.abuseipdb-ui-dark .row strong {
