@@ -20,9 +20,12 @@ let scanPending = false;
 let scanningEnabled = true;
 /** @type {MutationObserver | null} */
 let domObserver = null;
+let textNodeRescanPending = false;
 
 const TOOLTIP_MARGIN = 8;
 const TOOLTIP_PANEL_MAX_WIDTH = 380;
+const GCP_CONSOLE_HOSTNAME = "console.cloud.google.com";
+const isGcpConsole = window.location.hostname === GCP_CONSOLE_HOSTNAME;
 
 /**
  * Visible viewport bounds for fixed-position UI. Prefers Visual Viewport API when
@@ -48,6 +51,7 @@ function getViewportBounds() {
 
 // Text nodes confirmed to contain no IPv4 in a prior scan; skipped on subsequent passes.
 const scannedTextNodes = new WeakSet();
+const pendingTextNodeRescans = new Set();
 
 function scheduleScan() {
   if (scanPending) {
@@ -65,6 +69,39 @@ function scheduleScan() {
     requestIdleCallback(run, { timeout: 2000 });
   } else {
     setTimeout(run, 200);
+  }
+}
+
+function scheduleTextNodeRescan(textNode) {
+  if (!isGcpConsole || textNode.nodeType !== Node.TEXT_NODE) {
+    return;
+  }
+
+  pendingTextNodeRescans.add(textNode);
+  if (textNodeRescanPending) {
+    return;
+  }
+
+  textNodeRescanPending = true;
+  const run = () => {
+    textNodeRescanPending = false;
+    if (!scanningEnabled) {
+      pendingTextNodeRescans.clear();
+      return;
+    }
+
+    const batch = Array.from(pendingTextNodeRescans);
+    pendingTextNodeRescans.clear();
+    for (const node of batch) {
+      scannedTextNodes.delete(node);
+      processTextNode(node);
+    }
+  };
+
+  if (typeof requestIdleCallback === "function") {
+    requestIdleCallback(run, { timeout: 1000 });
+  } else {
+    setTimeout(run, 100);
   }
 }
 
@@ -572,6 +609,10 @@ function isSelfInflictedMutation(mutation) {
   );
 }
 
+function isGcpTextMutation(mutation) {
+  return isGcpConsole && mutation.type === "characterData" && mutation.target.nodeType === Node.TEXT_NODE;
+}
+
 function startObserver() {
   if (domObserver) {
     return;
@@ -580,17 +621,32 @@ function startObserver() {
     if (!scanningEnabled) {
       return;
     }
+    let shouldScanDocument = false;
     for (let i = 0; i < mutations.length; i += 1) {
-      if (!isSelfInflictedMutation(mutations[i])) {
-        scheduleScan();
-        return;
+      const mutation = mutations[i];
+      if (isSelfInflictedMutation(mutation)) {
+        continue;
       }
+      if (isGcpTextMutation(mutation)) {
+        scheduleTextNodeRescan(mutation.target);
+        continue;
+      }
+      shouldScanDocument = true;
+    }
+    if (shouldScanDocument) {
+      scheduleScan();
     }
   });
-  domObserver.observe(document.documentElement, {
+
+  const observerOptions = {
     childList: true,
     subtree: true
-  });
+  };
+  if (isGcpConsole) {
+    observerOptions.characterData = true;
+  }
+
+  domObserver.observe(document.documentElement, observerOptions);
 }
 
 /**

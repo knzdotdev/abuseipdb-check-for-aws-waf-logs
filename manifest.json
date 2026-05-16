@@ -2,13 +2,14 @@
   "manifest_version": 3,
   "name": "IP Check for WAF Logs",
   "version": "0.2.3",
-  "description": "Detects IPv4 addresses in the AWS Console and checks them against AbuseIPDB on click. Designed for AWS WAF Sampled Logs.",
+  "description": "Detects IPv4 addresses in AWS and GCP console logs and checks them against AbuseIPDB on click. Designed for WAF log triage.",
   "permissions": [
     "storage"
   ],
   "host_permissions": [
     "https://api.abuseipdb.com/*",
-    "https://*.console.aws.amazon.com/*"
+    "https://*.console.aws.amazon.com/*",
+    "https://console.cloud.google.com/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -21,7 +22,8 @@
   "content_scripts": [
     {
       "matches": [
-        "https://*.console.aws.amazon.com/*"
+        "https://*.console.aws.amazon.com/*",
+        "https://console.cloud.google.com/*"
       ],
       "js": [
         "content.js"
